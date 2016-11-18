@@ -1,0 +1,34 @@
+my=document.querySelector("audio");
+my1=document.querySelector("video");
+my.onclick=function(){
+	if(my.paused){
+		my.play();
+	}
+	else
+		my.pause();
+}
+whole=document.querySelector("body")
+whole.onkeydown=function(e){
+	if(e.keyCode===32){
+	if(my.paused){
+		my.play();
+	}
+	else
+		my.pause();
+	}
+
+	if(e.keyCode===13){
+	if(my1.paused){
+		my1.play();
+	}
+	else
+		my1.pause();
+}
+}
+my1.onclick=function(){
+	if(my1.paused){
+		my1.play();
+	}
+	else
+		my1.pause();
+}
