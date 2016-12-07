@@ -25,11 +25,12 @@ var hub = new a.Nmdc({
 hub.onConnect = function() {
     //hub.say('Hi everyone!');
     console.log('connected');
-    if(hub.opts.active===true)
+    /*if(hub.opts.active===true)
     hub.activeSearch('F?F?0?1?net');
 	else
-		hub.passiveSearch('F?F?0?1?2016');
-    hub.pm('black_mamba','hello',function(){})
+		hub.passiveSearch('F?F?0?1?2016');*/
+    //hub.pm('black_mamba','charas chutiya hai',function(){})
+    hub.download('aldf');
     //hub.pm('winchester',"sdascsc");
     //console.log(hub.search('winchester1200'));
 };

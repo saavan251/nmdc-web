@@ -10,6 +10,9 @@ Permission to use, copy, modify, and/or distribute this software for any
 var net = require('net');
 var tls = require('tls');
 var dgram = require('dgram');
+var fs = require('fs');
+var decompress = require('decompress');
+var bunzip = require('seek-bzip')
 
 var NMDC_JS_RECONNECT_TIMEOUT = 30*1000;
 var NMDC_JS_KEEPALIVE_TIMEOUT = 15*1000;
@@ -75,6 +78,7 @@ function Nmdc(options, onConnect) {
 	
 	this.sock = null;
 	this.server=null;
+	this.tcps=null;
 	
 	if(this.opts.shouldInstantConnect){
 		return this.reconnect();
@@ -258,7 +262,7 @@ Nmdc.prototype.reconnect = function() {
 	// Data
 	this.sock.on('data', function(data) {
 		var commands = data.split('|');
-		console.log(commands);
+		//console.log(commands);
 		// Handle protocol buffering
 		commands[0] = self.nmdc_partial + commands[0];
 		//console.log('partial'+self.nmdc_partial);
@@ -293,6 +297,81 @@ Nmdc.prototype.getIsConnected = function() {
 Nmdc.prototype.getHubName = function() {
 	return this.hubName;
 }
+/**Downloading active client settings
+*
+*/
+Nmdc.prototype.activedownload=function(nick)
+{
+
+var self=this;
+this.tcps=net.createServer(function(soc) {
+	var sendontcp=function(value){
+		console.log('SENDING: '+value);
+		soc.write(value);
+	}
+    soc.on('data', function(data) {
+    	//console.log(data);
+        data=data+'';
+        //console.log('DATA ' + soc.remoteAddress + ': ' + data);
+        var comm = data.split('|');
+        console.log('check this out'+comm[0]);
+        for(var i in comm)
+        {
+        	//console.log(comm[i]);
+        	var cmd = comm[i].split(' ')[0];
+			var rem = comm[i].substr(cmd.length + 1);
+        	//var splitted = comm[i].split(' ');
+        	//console.log(cmd); 
+        	//console.log(rem);
+        if(cmd==='$MyNick')
+        	sendontcp('$MyNick '+self.opts.nick+'|');
+        if(cmd==='$Lock')
+        {
+        	var key = nmdc_locktokey(rem);
+    		console.log('KEY: '+key);
+			sendontcp(
+				'$Lock '+rem+'|'+
+				//'$Supports NoGetINFO UserCommand UserIP2 '+
+				'$Supports MiniSlots XmlBZList ADCGet TTHL TTHF ZLIG|'+
+				'$Direction Download 10100|'+
+				'$Key '+key+'|'
+			);
+        }
+        if(cmd==='$Key'){
+        	sendontcp('$ADCGET file files.xml.bz2 0 -1 ZL1|');
+        }
+    }
+    soc.on('error',function(err){
+    	console.log(err+'');
+    });
+    });
+    soc.on('close', function(data) {
+        console.log('tcp CLOSED: ');
+    });
+    
+}).listen(60333, '192.168.118.164');
+//this.tcps.write('akdfjsdfj');
+console.log('TCP Server listening');
+	try{
+		//console.log(this.sock.localPort+'port address');
+		//photon DC\\setups\\remix\\md5sum.txt
+		//Prithvipc Study(rP)\\IC.pdf
+		this.raw('$ConnectToMe photon 192.168.118.164:60333|');
+	}
+	catch(ex){
+ 		this.onDebug(ex+' download me prob hai');
+ 	}
+};
+
+/**
+* Passive downloading
+*
+*/
+Nmdc.prototype.download=function(data){
+	this.raw('$RevConnectToMe '+this.opts.nick+' sss|');
+
+
+};
 
 /**
  * Passive search
@@ -389,6 +468,8 @@ Nmdc.prototype.nmdc_handle = function(data) {
 	switch (cmd) {
 		
 		case '$Lock': {
+			console.log(data);
+			console.log(rem);
 			var key = nmdc_locktokey(rem);
 			this.raw(
 				'$Supports NoGetINFO UserCommand UserIP2|'+
@@ -483,7 +564,7 @@ Nmdc.prototype.nmdc_handle = function(data) {
 
 		case '$SR':{
 			rem=rem.split(' ');
-			this.onSystem(rem[0]);
+			//this.onSystem(rem[0]);
 
 		}break;
 		
@@ -525,13 +606,92 @@ Nmdc.prototype.nmdc_handle = function(data) {
 				this.onDebug("Ignoring redirect request for '" + rem + "'");
 			}
 		} break;
-		
+		case '$MyNick':{
+			
+
+		}break;
+		case '$ConnectToMe':{
+			var s='';
+			var inx=0;
+			console.log(cmd+' '+rem+'');
+			var port=parseInt(rem.split(':')[1],10);
+			var address=(rem.split(' ')[1]).split(':')[0]+'';
+			//console.log(address1+port);
+			var self =this;
+			var sendtcp=function(data)
+			{
+				console.log('SENDING(tcp): '+data+'');
+				self.tcps.write(data);
+			};
+			this.tcps=net.connect({port: port,host: address}, function() {
+			   console.log('connected to client via tcp-server!');  
+			});
+			/*this.tcps.on('data', function(data) {
+			   console.log(data+'');
+			   client.end();
+			});*/
+			sendtcp('$MyNick '+this.opts.nick+'|');
+			this.tcps.on('data', function(data) {
+				
+    		console.log(data.toString());
+        		data=data+'';
+        		s+=data;
+        		fs.writeFileSync("files.txt",(s));
+        		//fs.writeFileSync("files.txt",bunzip.decode(s));
+        		//console.log('DATA : ' + data);
+        		var comm = data.split('|');
+        		//if(inx===2)
+        		{
+        		//console.log('CHECK THIS OUT  '+inx+':  '+comm[1].toString());
+        		inx++;
+        	}
+        		for(var i in comm)
+        		{
+        			//console.log(comm[i]);
+        			var cmd = comm[i].split(' ')[0];
+					var rem = comm[i].substr(cmd.length + 1);
+        			//var splitted = comm[i].split(' ');
+        			//console.log(cmd); 
+        			//console.log(rem);
+        			/*if(cmd==='$MyNick')
+        			sendtcp('$MyNick '+self.opts.nick+'|');*/
+        			//for(var i=0;i<10;i++)
+        				//console.log(data[0]+'');
+        			if(cmd==='$Lock')
+        			{
+        				var key = nmdc_locktokey(rem);
+    					console.log('KEY: '+key);
+						sendtcp('$Lock '+rem+'|'+'$Supports MiniSlots XmlBZList ADCGet TTHL TTHF ZLIG|'+
+						'$Direction Download 10100|'+
+						'$Key '+key+'|');
+        			}
+        			if(cmd==='$Key'){
+        				sendtcp('$ADCGET file files.xml.bz2 0 -1 ZL1|');
+        				//s='';
+        				/*for(var i=0;i<10000000;i++)
+        					{var x=2;}*/
+        				//sendtcp('$ADCGET file Study(rP)\\IC.pdf 0 -1 ZL1|');
+        			}
+        			if(cmd==='$ADCSEND')
+        			{
+        				console.log(cmd+' '+rem);
+        			}
+    			}
+    		});
+			this.tcps.on('end', function() { 
+			   console.log('disconnected from server');
+			});
+			this.tcps.on('error',function(err){
+				console.log(err+'');
+			});
+		}break;
+
 		// Ignorable:
 		case '$Supports':
 		case '$UserList':
 		case '$OpList':
 		case '$HubTopic':
-		case '$ConnectToMe':
+		
 		{ break; }
 		
 		default: {
