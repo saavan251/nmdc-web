@@ -353,7 +353,7 @@ this.tcps=net.createServer(function(soc) {
 //this.tcps.write('akdfjsdfj');
 console.log('TCP Server listening');
 	try{
-		//console.log(this.sock.localPort+'port address');
+		//console.log(this.sock.localPort+'port addres s');
 		//photon DC\\setups\\remix\\md5sum.txt
 		//Prithvipc Study(rP)\\IC.pdf
 		this.raw('$ConnectToMe photon 192.168.118.164:60333|');
@@ -612,7 +612,7 @@ Nmdc.prototype.nmdc_handle = function(data) {
 		}break;
 		case '$ConnectToMe':{
 			var s='';
-			var inx=0;
+			var inx=0;var flag=0;
 			console.log(cmd+' '+rem+'');
 			var port=parseInt(rem.split(':')[1],10);
 			var address=(rem.split(' ')[1]).split(':')[0]+'';
@@ -636,8 +636,13 @@ Nmdc.prototype.nmdc_handle = function(data) {
     		console.log(data.toString());
         		data=data+'';
         		s+=data;
-        		fs.writeFileSync("files.txt",(s));
-        		//fs.writeFileSync("files.txt",bunzip.decode(s));
+        		if(flag==1){
+        		if(s.substr(0,7)==='$ADCSND')
+        			//console.log(s.substr(0,7));
+        		//console.log(data);
+        				s=s.substr(40);
+        		//fs.writeFileSync("files.xml",(bunzip.decode(s)));
+        			console.log(bunzip.decode(s).toString());}   
         		//console.log('DATA : ' + data);
         		var comm = data.split('|');
         		//if(inx===2)
@@ -667,7 +672,7 @@ Nmdc.prototype.nmdc_handle = function(data) {
         			}
         			if(cmd==='$Key'){
         				sendtcp('$ADCGET file files.xml.bz2 0 -1 ZL1|');
-        				//s='';
+        				s='';flag=1;
         				/*for(var i=0;i<10000000;i++)
         					{var x=2;}*/
         				//sendtcp('$ADCGET file Study(rP)\\IC.pdf 0 -1 ZL1|');
